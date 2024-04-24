@@ -26,7 +26,7 @@ HAUTEUR_VAISSEAU = 80
 LARGEUR_BOSS = 100
 HAUTEUR_BOSS = 100
 
-# Liste des positions des astéroïdesp
+# Liste des positions des astéroïdes
 asteroides = []
 
 # Liste des positions des munitions
