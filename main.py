@@ -48,9 +48,6 @@ temps_dernier_rechargement = time.time()
 # Temps écoulé depuis le début du niveau
 temps_debut_niveau = 0
 
-# Classement des temps
-classement_temps = []
-
 # Boss
 boss_x = largeur - LARGEUR_BOSS
 boss_y = hauteur // 2 - HAUTEUR_BOSS // 2
@@ -69,40 +66,6 @@ pygame.init()
 largeur, hauteur = 800, 600
 monEcran = pygame.display.set_mode((largeur, hauteur))
 horloge = pygame.time.Clock()
-
-# Couleurs
-COULEUR_FOND = (100, 40, 70)
-COULEUR_VAISSEAU = (100, 100, 100)
-COULEUR_ASTEROIDE = (255, 255, 255)
-COULEUR_MUNITION = (255, 0, 0)
-COULEUR_SCORE = (255, 255, 255)
-COULEUR_FIN = (0, 0, 0)
-COULEUR_TEXTE_FIN = (255, 255, 255)
-COULEUR_TEXTE_ACCUEIL = (255, 255, 255)
-
-# Dimensions
-LARGEUR_VAISSEAU = 30
-HAUTEUR_VAISSEAU = 80
-
-# Listes
-asteroides = []
-munitions = []
-
-# Scores
-score = 0
-fonte = pygame.font.Font(None, 36)
-
-# Police pour l'écran de fin
-fonte_fin = pygame.font.Font(None, 50)
-
-# Nombre initial de munitions
-munitions_disponibles = 10
-
-# Temps depuis le dernier rechargement de munitions
-temps_dernier_rechargement = time.time()
-
-# Temps depuis le début du niveau
-temps_debut_niveau = 0
 
 # Classements pour les deux niveaux
 classement_temps = {"epsilon": [], "zeta": []}
@@ -217,11 +180,7 @@ def afficher_classement():
 
     while True:
         for event in pygame.event.get():
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:
-                    if bouton_retour.collidepoint(event.pos):
-                        return
-            elif event.type == pygame.KEYDOWN:
+            if (event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and bouton_retour.collidepoint(event.pos)) or (event.type == pygame.KEYDOWN):
                 return
 
 
@@ -303,17 +262,16 @@ def ecran_accueil():
                     return "sigma"  # Renommer le niveau
                 elif event.key == pygame.K_z:
                     return "zeta"
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:
-                    if bouton_epsilon.collidepoint(event.pos):
-                        return "epsilon"
-                    elif bouton_zeta.collidepoint(event.pos):
-                        return "zeta"
-                    elif bouton_sigma.collidepoint(event.pos):
-                        return "sigma"
-                    elif bouton_classement.collidepoint(event.pos):
-                        afficher_classement()
-                        return
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if bouton_epsilon.collidepoint(event.pos):
+                    return "epsilon"
+                elif bouton_zeta.collidepoint(event.pos):
+                    return "zeta"
+                elif bouton_sigma.collidepoint(event.pos):
+                    return "sigma"
+                elif bouton_classement.collidepoint(event.pos):
+                    afficher_classement()
+                    return
             elif event.type == pygame.QUIT:
                 pygame.quit()
                 return None
@@ -383,6 +341,20 @@ def afficher_barre_vie():
     )  # Largeur multipliée par 2 pour correspondre à 50 PV
 
 
+def pause(keys, en_pause):
+    if keys[pygame.K_ESCAPE]:
+        en_pause = not en_pause
+        if not en_pause:
+            print(3)
+            time.sleep(1)
+            print(2)
+            time.sleep(1)
+            print(1)
+        time.sleep(1)
+    return en_pause
+
+
+
 def main():
     global posx, posy, asteroides, score, munitions, munitions_disponibles, temps_dernier_rechargement, temps_debut_niveau, classement_temps, munitions_disponibles, temps_dernier_rechargement, temps_debut_niveau, classement_temps, boss_x, boss_y, boss_vie, boss_invincible, temps_invincible_debut
     jeu_en_cours = True
@@ -410,123 +382,122 @@ def main():
 
                 keys = pygame.key.get_pressed()
 
-                if keys[pygame.K_ESCAPE]:
+                en_pause = pause(keys, en_pause)
+                if en_pause:
                     ecran_pause()
-                    en_pause = True
+                    continue
 
-                if not en_pause:
-                    if keys[pygame.K_DOWN] and posy < hauteur - HAUTEUR_VAISSEAU:
-                        posy += 5
-                    if keys[pygame.K_UP] and posy > 0:
-                        posy -= 5
-                    if keys[pygame.K_RIGHT] and posx < largeur - LARGEUR_VAISSEAU:
-                        posx += 5
-                    if keys[pygame.K_LEFT] and posx > 0:
-                        posx -= 5
+                if keys[pygame.K_DOWN] and posy < hauteur - HAUTEUR_VAISSEAU:
+                    posy += 5
+                if keys[pygame.K_UP] and posy > 0:
+                    posy -= 5
+                if keys[pygame.K_RIGHT] and posx < largeur - LARGEUR_VAISSEAU:
+                    posx += 5
+                if keys[pygame.K_LEFT] and posx > 0:
+                    posx -= 5
 
-                    monEcran.fill(COULEUR_FOND)
+                monEcran.fill(COULEUR_FOND)
 
-                    en_bas = keys[pygame.K_DOWN]
-                    dessiner_jeu(en_bas)
+                en_bas = keys[pygame.K_DOWN]
+                dessiner_jeu(en_bas)
 
-                    for event in pygame.event.get():
-                        if event.type == pygame.QUIT:
-                            jeu_en_cours = False
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        jeu_en_cours = False
 
-                        if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-                            if munitions_disponibles > 0:
-                                munitions.append(
-                                    (
-                                        posx + LARGEUR_VAISSEAU,
-                                        posy + HAUTEUR_VAISSEAU // 2,
-                                    )
-                                )
-                                munitions_disponibles -= 1
-
-                    for asteroide in asteroides:
-                        dessiner_asteroide(*asteroide)
-
-                    for munition in munitions:
-                        dessiner_munition(*munition)
-
-                    munitions = [(mx + 10, my) for mx, my in munitions]
-
-                    for munition in munitions:
-                        if collision_boss(*munition):
-                            munitions.remove(munition)
-                            boss_vie -= 1
-                            if boss_vie <= 0:
-                                game_over = True
-                                break
-
-                    if (
-                        randint(0, 100) < 7 + score // 100
-                    ):  # Augmentation de la densité des astéroïdes
-                        taille_asteroide = randint(20, 100)
-                        asteroides.append(
-                            (largeur, randint(0, hauteur - 30), taille_asteroide)
+                    if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE and munitions_disponibles > 0:
+                        munitions.append(
+                            (
+                                posx + LARGEUR_VAISSEAU,
+                                posy + HAUTEUR_VAISSEAU // 2,
+                            )
                         )
+                        munitions_disponibles -= 1
 
-                    temps_actuel = time.time()
-                    if temps_actuel - temps_dernier_rechargement > 5:
-                        munitions_disponibles += 1
-                        temps_dernier_rechargement = temps_actuel
+                for asteroide in asteroides:
+                    dessiner_asteroide(*asteroide)
 
-                    # Ajout de munitions toutes les 2 secondes
-                    if temps_actuel - temps_derniere_munition > 2:
-                        munitions_disponibles += 1
-                        temps_derniere_munition = temps_actuel
+                for munition in munitions:
+                    dessiner_munition(*munition)
 
-                    for asteroide in asteroides:
-                        for munition in munitions:
-                            if collision_astéroide(*munition, *asteroide):
-                                asteroides.remove(asteroide)
-                                munitions.remove(munition)
-                                score += 10
+                munitions = [(mx + 10, my) for mx, my in munitions]
 
-                    for asteroide in asteroides:
-                        if collision_vaisseau(
-                            *asteroide, posx, posy, LARGEUR_VAISSEAU, HAUTEUR_VAISSEAU
-                        ):
+                for munition in munitions:
+                    if collision_boss(*munition):
+                        munitions.remove(munition)
+                        boss_vie -= 1
+                        if boss_vie <= 0:
                             game_over = True
                             break
 
-                    if boss_invincible:
-                        if temps_actuel - temps_invincible_debut > TEMPS_INVINCIBILITE:
-                            boss_invincible = False
-                            boss_vie = 1  # Réinitialiser la vie du boss à 1
-                            asteroides *= 3  # Triple le nombre d'astéroïdes
+                if (
+                    randint(0, 100) < 7 + score // 100
+                ):  # Augmentation de la densité des astéroïdes
+                    taille_asteroide = randint(20, 100)
+                    asteroides.append(
+                        (largeur, randint(0, hauteur - 30), taille_asteroide)
+                    )
 
-                    if boss_vie <= 0:
-                        afficher_victoire()
+                temps_actuel = time.time()
+                if temps_actuel - temps_dernier_rechargement > 5:
+                    munitions_disponibles += 1
+                    temps_dernier_rechargement = temps_actuel
 
-                    afficher_score(score, munitions_disponibles)
-                    dessiner_boss()
-                    afficher_barre_vie()
+                # Ajout de munitions toutes les 2 secondes
+                if temps_actuel - temps_derniere_munition > 2:
+                    munitions_disponibles += 1
+                    temps_derniere_munition = temps_actuel
 
-                    pygame.display.update()
+                for asteroide in asteroides:
+                    for munition in munitions:
+                        if collision_astéroide(*munition, *asteroide):
+                            asteroides.remove(asteroide)
+                            munitions.remove(munition)
+                            score += 10
 
-                    asteroides = [
-                        (ast_x - 5, ast_y, taille_ast)
-                        for ast_x, ast_y, taille_ast in asteroides
-                        if ast_x > -30
-                    ]
+                for asteroide in asteroides:
+                    if collision_vaisseau(
+                        *asteroide, posx, posy, LARGEUR_VAISSEAU, HAUTEUR_VAISSEAU
+                    ):
+                        game_over = True
+                        break
 
-                    # Mouvement du boss
-                    global direction_boss
-                    global boss_vitesse
-                    # Changer la direction du boss aléatoirement
-                    if random.randint(0, 100) < 2:
-                        direction_boss *= -1
-                    # Changer la vitesse du boss aléatoirement
-                    if random.randint(0, 100) < 5:
-                        boss_vitesse = random.uniform(1, 3)
-                    boss_y += boss_vitesse * direction_boss
-                    if boss_y <= 0 or boss_y >= hauteur - HAUTEUR_BOSS:
-                        direction_boss *= -1
+                if boss_invincible:
+                    if temps_actuel - temps_invincible_debut > TEMPS_INVINCIBILITE:
+                        boss_invincible = False
+                        boss_vie = 1  # Réinitialiser la vie du boss à 1
+                        asteroides *= 3  # Triple le nombre d'astéroïdes
 
-                if game_over:
-                    afficher_fin("Game Over", niveau)
+                if boss_vie <= 0:
+                    afficher_victoire()
+
+                afficher_score(score, munitions_disponibles)
+                dessiner_boss()
+                afficher_barre_vie()
+                    
+                pygame.display.update()
+
+                asteroides = [
+                    (ast_x - 5, ast_y, taille_ast)
+                    for ast_x, ast_y, taille_ast in asteroides
+                    if ast_x > -30
+                ]
+
+                # Mouvement du boss
+                global direction_boss
+                global boss_vitesse
+                # Changer la direction du boss aléatoirement
+                if random.randint(0, 100) < 2:
+                    direction_boss *= -1
+                # Changer la vitesse du boss aléatoirement
+                if random.randint(0, 100) < 5:
+                    boss_vitesse = random.uniform(1, 3)
+                boss_y += boss_vitesse * direction_boss
+                if boss_y <= 0 or boss_y >= hauteur - HAUTEUR_BOSS:
+                    direction_boss *= -1
+
+            if game_over:
+                afficher_fin("Game Over", niveau)
 
         if niveau in ("epsilon", "zeta"):
             score = 0
@@ -544,7 +515,7 @@ def main():
 
                 if touches[pygame.K_ESCAPE]:
                     ecran_pause()
-                    en_pause = True
+                    en_pause = not en_pause
 
                 if not en_pause:
                     if touches[pygame.K_DOWN] and posy < hauteur - HAUTEUR_VAISSEAU:
